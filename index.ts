@@ -47,10 +47,16 @@ fs.createReadStream('Transactions2014.csv')
 
         account_totals[send_pos_index]=account_totals[send_pos_index]-value
         account_totals[rec_pos_index]=account_totals[rec_pos_index]-(-value)
-        console.log(account_totals)
+        console.log(!account_totals)
     }
 var table = [unique_names, account_totals]
-console.log(table)
+
+//here we add userinput and query functionality
+
+
+
+
+
   });
 
 
