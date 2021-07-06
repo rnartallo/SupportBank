@@ -9,7 +9,12 @@ type transaction = {
     amount: number
 }
 
-type transaction_log = transaction[];
+var support_trans_log: transaction[] =[];
 
 
-let support_trans_log: transaction_log;
+fs.createReadStream('Transactions2014.csv')
+  .pipe(csv())
+  .on('data', (row: transaction) => support_trans_log.push(row))
+  .on('end', () => {
+    console.log(support_trans_log);
+  });
