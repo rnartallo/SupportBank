@@ -1,12 +1,12 @@
 export class Transaction {
-  Date: Date;
+  Date: string;
   From: string;
   To: string;
   Narrative: string;
   Amount: number;
 
   constructor(
-    date: Date,
+    date: string,
     from: string,
     to: string,
     narrative: string,

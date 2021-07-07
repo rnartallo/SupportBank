@@ -29,12 +29,21 @@ rl.question("Enter a filename: ", (answer) => {
   let file_type: String = getFileExt(answer);
   if (file_type == "csv") {
     processCSV(answer);
+  } else if (file_type == "json") {
+    processJSON(answer);
   }
   rl.close();
 });
 
 function getFileExt(file: string) {
   return file.split(".")[1];
+}
+
+function processJSON(file: string) {
+  const data: string = fs.readFileSync(file, "utf8");
+  support_trans_log = JSON.parse(data);
+  logger.debug("Transactions all parsed: beginning further processing");
+  executeMain(support_trans_log);
 }
 
 function processCSV(file: string) {
@@ -55,9 +64,12 @@ function executeMain(support_trans_log: Transaction[]) {
   var names_list: string[] = [];
   for (let i = 0; i < support_trans_log.length; i++) {
     names_list.push(support_trans_log[i].From);
+    logger.debug(names_list);
     names_list.push(support_trans_log[i].To);
   }
+
   let unique_names = names_list.filter((e, i) => names_list.indexOf(e) === i);
+  logger.debug("The names of the people are: " + unique_names);
   let account_debits: number[] = new Array(unique_names.length);
   for (let i = 0; i < unique_names.length; ++i) account_debits[i] = 0;
   let account_credits: number[] = new Array(unique_names.length);
