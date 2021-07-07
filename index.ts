@@ -19,17 +19,37 @@ configure({
 let support_trans_log: Transaction[] = [];
 logger.debug("Program starts");
 //parsing the csv file into an array of type transaction
-fs.createReadStream("DodgyTransactions2015.csv")
-  .pipe(csv())
-  .on("data", (row: Transaction) => {
-    logger.debug("Handling a transaction:" + row);
-    support_trans_log.push(row);
-  })
-  .on("end", () => {
-    //we create a 'table' to keep track of the balances
-    logger.debug("Transactions all parsed: beginning further processing");
-    executeMain(support_trans_log);
-  });
+
+let rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+rl.question("Enter a filename: ", (answer) => {
+  let file_type: String = getFileExt(answer);
+  if (file_type == "csv") {
+    processCSV(answer);
+  }
+  rl.close();
+});
+
+function getFileExt(file: string) {
+  return file.split(".")[1];
+}
+
+function processCSV(file: string) {
+  fs.createReadStream(file)
+    .pipe(csv())
+    .on("data", (row: Transaction) => {
+      logger.debug("Handling a transaction:" + row);
+      support_trans_log.push(row);
+    })
+    .on("end", () => {
+      //we create a 'table' to keep track of the balances
+      logger.debug("Transactions all parsed: beginning further processing");
+      executeMain(support_trans_log);
+    });
+}
 
 function executeMain(support_trans_log: Transaction[]) {
   var names_list: string[] = [];
