@@ -3,14 +3,31 @@ const csv = require("csv-parser");
 import * as readline from "readline";
 import { Transaction, Person } from "./models";
 
-let support_trans_log: Transaction[] = [];
+import { configure, getLogger } from "log4js";
 
+const logger = getLogger("<filename");
+
+configure({
+  appenders: {
+    file: { type: "fileSync", filename: "logs/debug.log" },
+  },
+  categories: {
+    default: { appenders: ["file"], level: "debug" },
+  },
+});
+
+let support_trans_log: Transaction[] = [];
+logger.debug("Program starts");
 //parsing the csv file into an array of type transaction
-fs.createReadStream("Transactions2014.csv")
+fs.createReadStream("DodgyTransactions2015.csv")
   .pipe(csv())
-  .on("data", (row: Transaction) => support_trans_log.push(row))
+  .on("data", (row: Transaction) => {
+    logger.debug("Handling a transaction:" + row);
+    support_trans_log.push(row);
+  })
   .on("end", () => {
     //we create a 'table' to keep track of the balances
+    logger.debug("Transactions all parsed: beginning further processing");
     executeMain(support_trans_log);
   });
 
@@ -32,9 +49,39 @@ function executeMain(support_trans_log: Transaction[]) {
     var send_pos_index = unique_names.indexOf(support_trans_log[j].From);
     var rec_pos_index = unique_names.indexOf(support_trans_log[j].To);
     var value = support_trans_log[j].Amount;
+    let faultyTransaction = false;
 
-    account_debits[send_pos_index] = account_debits[send_pos_index] - value;
-    account_credits[rec_pos_index] = account_credits[rec_pos_index] - -value;
+    if (isNaN(value)) {
+      faultyTransaction = true;
+      logger.error(
+        "Problem with amount in transaction " +
+          j +
+          ": the amount is listed as " +
+          value
+      );
+      console.log(
+        "There is an error in Transaction " +
+          j +
+          ". The amount is not a number. It is " +
+          value +
+          " This entry has been emitted"
+      );
+      console.log(
+        "The affected parties are: " +
+          unique_names[send_pos_index] +
+          " and " +
+          unique_names[rec_pos_index]
+      );
+      delete support_trans_log[j];
+      logger.debug(
+        "Transaction " + j + " has been removed and the user has been alerted"
+      );
+    }
+
+    if (!faultyTransaction) {
+      account_debits[send_pos_index] = account_debits[send_pos_index] - value;
+      account_credits[rec_pos_index] = account_credits[rec_pos_index] - -value;
+    }
   }
   //here we add userinput and query functionality
   let rl = readline.createInterface({
@@ -47,7 +94,6 @@ function executeMain(support_trans_log: Transaction[]) {
       displayAll(unique_names, account_debits, account_credits);
     } else {
       var name: string = answer.substr(5);
-      console.log("LISTING TRANSACTIONS FOR: " + name);
       displayOne(name, support_trans_log);
     }
     rl.close();
@@ -55,6 +101,8 @@ function executeMain(support_trans_log: Transaction[]) {
 }
 
 function displayOne(name: string, support_trans_log: Transaction[]) {
+  console.log("LISTING TRANSACTIONS FOR: " + name);
+  logger.debug("Listing transactions for " + name);
   for (let j = 0; j < support_trans_log.length; j++) {
     if (support_trans_log[j].From == name || support_trans_log[j].To == name) {
       console.table(support_trans_log[j]);
@@ -67,6 +115,8 @@ function displayAll(
   account_debits: number[],
   account_credits: number[]
 ) {
+  console.log("Listing all transactions");
+  logger.debug("Listing all transactions");
   let table: Person[] = [];
   for (let j = 0; j < unique_names.length; j++) {
     var entry = new Person(

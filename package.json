@@ -16,6 +16,7 @@
   "dependencies": {
     "csv-parser": "^3.0.0",
     "fs": "^0.0.1-security",
+    "log4js": "^6.3.0",
     "luxon": "^1.27.0"
   }
 }
