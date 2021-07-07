@@ -1,5 +1,7 @@
 const fs = require("fs");
 const csv = require("csv-parser");
+const xml2js = require("xml2js");
+
 import * as readline from "readline";
 import { Transaction, Person } from "./models";
 
@@ -32,6 +34,8 @@ rl.question("Enter a filename: ", (answer) => {
       processCSV(answer, command);
     } else if (file_type == "json") {
       processJSON(answer, command);
+    } else if (file_type == "xml") {
+      processXML(answer, command);
     }
     rl.close();
   });
@@ -39,6 +43,32 @@ rl.question("Enter a filename: ", (answer) => {
 
 function getFileExt(file: string) {
   return file.split(".")[1];
+}
+
+function processXML(file: string, command: string) {
+  var parser = xml2js.Parser();
+  fs.readFile(file, "utf-8", function (error: boolean, text: any) {
+    if (error) {
+      throw error;
+    } else {
+      parser.parseString(text, function (err: boolean, result: any) {
+        var transactionslist = result["TransactionList"]["SupportTransaction"];
+        for (let j = 0; j < transactionslist.length; j++) {
+          logger.debug(transactionslist[j]["$"].Date);
+          var transaction = new Transaction(
+            transactionslist[j]["$"].Date,
+            transactionslist[j]["Parties"][0].From[0],
+            transactionslist[j]["Parties"][0].To[0],
+            transactionslist[j].Description[0],
+            transactionslist[j].Value[0]
+          );
+          support_trans_log.push(transaction);
+        }
+        logger.debug("The transaction list has been made");
+        executeMain(support_trans_log, command);
+      });
+    }
+  });
 }
 
 function processJSON(file: string, command: string) {
