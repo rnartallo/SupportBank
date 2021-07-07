@@ -1,5 +1,6 @@
 const fs = require('fs')
 const csv = require('csv-parser')
+import * as readline from 'readline';
 
 class transaction {
     Date: string;
@@ -34,7 +35,8 @@ fs.createReadStream('Transactions2014.csv')
       names_list.push(support_trans_log[i].To)
     }
     let unique_names = names_list.filter((e, i) => names_list.indexOf(e) === i);
-    let account_totals: number[] = new Array(unique_names.length); for (let i=0; i<unique_names.length; ++i) account_totals[i] = 0;
+    let account_debits: number[] = new Array(unique_names.length); for (let i=0; i<unique_names.length; ++i) account_debits[i] = 0;
+    let account_credits: number[] = new Array(unique_names.length); for (let i=0; i<unique_names.length; ++i) account_credits[i] = 0;
 
 
 
@@ -45,15 +47,40 @@ fs.createReadStream('Transactions2014.csv')
         var rec_pos_index = unique_names.indexOf(support_trans_log[j].To)
         var value = support_trans_log[j].Amount
 
-        account_totals[send_pos_index]=account_totals[send_pos_index]-value
-        account_totals[rec_pos_index]=account_totals[rec_pos_index]-(-value)
-        console.log(!account_totals)
+        account_debits[send_pos_index]=account_debits[send_pos_index]-value
+        account_credits[rec_pos_index]=account_credits[rec_pos_index]-(-value)
     }
-var table = [unique_names, account_totals]
-
 //here we add userinput and query functionality
+let rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+rl.question('Enter a command: ', (answer) => {
+  if(answer=="List All"){displayAll()}
+  else{
+      var name :string = answer.substr(5)
+      displayOne(name)
+  }
+  rl.close();
 
 
+  function displayAll(){
+      console .log("NAME + \t + OWE + \t +OWED")
+    for (let j=0;j<unique_names.length;j++){
+        console.log(unique_names[j]+  "\t"+  "£"+(-account_debits[j].toFixed(2))+  "\t"+  "£"+(account_credits[j].toFixed(2)))
+    }
+}
+
+function displayOne(name: string){
+    for (let j=0; j<support_trans_log.length; j++){
+        if(support_trans_log[j].From == name || support_trans_log[j].To == name){
+            console.log(support_trans_log[j])
+        }
+    }
+
+}
+});
 
 
 
