@@ -41,7 +41,17 @@ function getFileExt(file: string) {
 
 function processJSON(file: string) {
   const data: string = fs.readFileSync(file, "utf8");
-  support_trans_log = JSON.parse(data);
+  var raw_data = JSON.parse(data);
+  for (let i = 0; i < raw_data.length; i++) {
+    var transaction = new Transaction(
+      raw_data[i].Date,
+      raw_data[i].FromAccount,
+      raw_data[i].ToAccount,
+      raw_data[i].Narrative,
+      raw_data[i].Amount
+    );
+    support_trans_log.push(transaction);
+  }
   logger.debug("Transactions all parsed: beginning further processing");
   executeMain(support_trans_log);
 }
@@ -64,7 +74,6 @@ function executeMain(support_trans_log: Transaction[]) {
   var names_list: string[] = [];
   for (let i = 0; i < support_trans_log.length; i++) {
     names_list.push(support_trans_log[i].From);
-    logger.debug(names_list);
     names_list.push(support_trans_log[i].To);
   }
 
@@ -115,6 +124,9 @@ function executeMain(support_trans_log: Transaction[]) {
       account_credits[rec_pos_index] = account_credits[rec_pos_index] - -value;
     }
   }
+  logger.debug("Here are the account statuses - without names");
+  logger.debug(account_debits);
+  logger.debug(account_credits);
   //here we add userinput and query functionality
   let rl = readline.createInterface({
     input: process.stdin,
@@ -122,10 +134,13 @@ function executeMain(support_trans_log: Transaction[]) {
   });
 
   rl.question("Enter a command: ", (answer) => {
+    logger.debug(answer);
     if (answer == "List All") {
+      logger.debug("User has selected list all");
       displayAll(unique_names, account_debits, account_credits);
     } else {
       var name: string = answer.substr(5);
+      logger.debug("User has selected " + name);
       displayOne(name, support_trans_log);
     }
     rl.close();
