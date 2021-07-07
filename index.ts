@@ -165,8 +165,19 @@ function executeMain(support_trans_log: Transaction[], command: string) {
     displayAll(unique_names, account_debits, account_credits);
   } else {
     var name: string = command.substr(5);
-    logger.debug("User has selected " + name);
-    displayOne(name, support_trans_log);
+    logger.debug("The name is " + name);
+    var faultyCommand = false;
+    if (!unique_names.includes(name)) {
+      faultyCommand = true;
+      logger.error("User has entered invalid command");
+      console.log("That is not a valid command");
+      console.log("You can either 'List All' or you can 'List + [name]'");
+      console.log("The possible names are " + unique_names);
+    }
+    if (!faultyCommand) {
+      logger.debug("User has selected " + name);
+      displayOne(name, support_trans_log);
+    }
   }
 }
 
@@ -185,7 +196,7 @@ function displayAll(
   account_debits: number[],
   account_credits: number[]
 ) {
-  console.log("Listing all transactions");
+  console.log("Listing all people");
   logger.debug("Listing all transactions");
   let table: Person[] = [];
   for (let j = 0; j < unique_names.length; j++) {
