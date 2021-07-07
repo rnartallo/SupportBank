@@ -6,6 +6,15 @@ import * as readline from "readline";
 import { Transaction, Person } from "./models";
 
 import { configure, getLogger } from "log4js";
+import {
+  getFileExt,
+  processCSV,
+  processJSON,
+  processXML,
+} from "./file_processor";
+
+import { displayAll, displayOne } from "./display_class";
+import { logFaultyCommand, logFaultyTransaction } from "./error_messages";
 
 const logger = getLogger("<filename");
 
@@ -41,68 +50,7 @@ rl.question("Enter a filename: ", (answer) => {
   });
 });
 
-function getFileExt(file: string) {
-  return file.split(".")[1];
-}
-
-function processXML(file: string, command: string) {
-  var parser = xml2js.Parser();
-  fs.readFile(file, "utf-8", function (error: boolean, text: any) {
-    if (error) {
-      throw error;
-    } else {
-      parser.parseString(text, function (err: boolean, result: any) {
-        var transactionslist = result["TransactionList"]["SupportTransaction"];
-        for (let j = 0; j < transactionslist.length; j++) {
-          logger.debug(transactionslist[j]["$"].Date);
-          var transaction = new Transaction(
-            transactionslist[j]["$"].Date,
-            transactionslist[j]["Parties"][0].From[0],
-            transactionslist[j]["Parties"][0].To[0],
-            transactionslist[j].Description[0],
-            transactionslist[j].Value[0]
-          );
-          support_trans_log.push(transaction);
-        }
-        logger.debug("The transaction list has been made");
-        executeMain(support_trans_log, command);
-      });
-    }
-  });
-}
-
-function processJSON(file: string, command: string) {
-  const data: string = fs.readFileSync(file, "utf8");
-  var raw_data = JSON.parse(data);
-  for (let i = 0; i < raw_data.length; i++) {
-    var transaction = new Transaction(
-      raw_data[i].Date,
-      raw_data[i].FromAccount,
-      raw_data[i].ToAccount,
-      raw_data[i].Narrative,
-      raw_data[i].Amount
-    );
-    support_trans_log.push(transaction);
-  }
-  logger.debug("Transactions all parsed: beginning further processing");
-  executeMain(support_trans_log, command);
-}
-
-function processCSV(file: string, command: string) {
-  fs.createReadStream(file)
-    .pipe(csv())
-    .on("data", (row: Transaction) => {
-      logger.debug("Handling a transaction:" + row);
-      support_trans_log.push(row);
-    })
-    .on("end", () => {
-      //we create a 'table' to keep track of the balances
-      logger.debug("Transactions all parsed: beginning further processing");
-      executeMain(support_trans_log, command);
-    });
-}
-
-function executeMain(support_trans_log: Transaction[], command: string) {
+export function executeMain(support_trans_log: Transaction[], command: string) {
   var names_list: string[] = [];
   for (let i = 0; i < support_trans_log.length; i++) {
     names_list.push(support_trans_log[i].From);
@@ -126,34 +74,24 @@ function executeMain(support_trans_log: Transaction[], command: string) {
 
     if (isNaN(value)) {
       faultyTransaction = true;
-      logger.error(
-        "Problem with amount in transaction " +
-          j +
-          ": the amount is listed as " +
-          value
-      );
-      console.log(
-        "There is an error in Transaction " +
-          j +
-          ". The amount is not a number. It is " +
-          value +
-          " This entry has been emitted"
-      );
-      console.log(
-        "The affected parties are: " +
-          unique_names[send_pos_index] +
-          " and " +
-          unique_names[rec_pos_index]
+      logFaultyTransaction(
+        j,
+        value,
+        unique_names,
+        send_pos_index,
+        rec_pos_index
       );
       delete support_trans_log[j];
-      logger.debug(
-        "Transaction " + j + " has been removed and the user has been alerted"
-      );
     }
 
     if (!faultyTransaction) {
-      account_debits[send_pos_index] = account_debits[send_pos_index] - value;
-      account_credits[rec_pos_index] = account_credits[rec_pos_index] - -value;
+      updateAccount(
+        account_credits,
+        account_debits,
+        send_pos_index,
+        rec_pos_index,
+        value
+      );
     }
   }
   logger.debug("Here are the account statuses - without names");
@@ -169,10 +107,7 @@ function executeMain(support_trans_log: Transaction[], command: string) {
     var faultyCommand = false;
     if (!unique_names.includes(name)) {
       faultyCommand = true;
-      logger.error("User has entered invalid command");
-      console.log("That is not a valid command");
-      console.log("You can either 'List All' or you can 'List + [name]'");
-      console.log("The possible names are " + unique_names);
+      logFaultyCommand(unique_names);
     }
     if (!faultyCommand) {
       logger.debug("User has selected " + name);
@@ -181,31 +116,22 @@ function executeMain(support_trans_log: Transaction[], command: string) {
   }
 }
 
-function displayOne(name: string, support_trans_log: Transaction[]) {
-  console.log("LISTING TRANSACTIONS FOR: " + name);
-  logger.debug("Listing transactions for " + name);
-  for (let j = 0; j < support_trans_log.length; j++) {
-    if (support_trans_log[j].From == name || support_trans_log[j].To == name) {
-      console.table(support_trans_log[j]);
-    }
-  }
+function updateAccount(
+  account_credits: number[],
+  account_debits: number[],
+  send_pos_index: number,
+  rec_pos_index: number,
+  value: number
+) {
+  account_debits[send_pos_index] = account_debits[send_pos_index] - value;
+  account_credits[rec_pos_index] = account_credits[rec_pos_index] - -value;
 }
 
-function displayAll(
-  unique_names: string[],
-  account_debits: number[],
-  account_credits: number[]
-) {
-  console.log("Listing all people");
-  logger.debug("Listing all transactions");
-  let table: Person[] = [];
-  for (let j = 0; j < unique_names.length; j++) {
-    var entry = new Person(
-      unique_names[j],
-      -account_debits[j].toFixed(2),
-      Number(account_credits[j].toFixed(2))
-    );
-    table.push(entry);
-  }
-  console.table(table);
-}
+// function breakdown(
+//   unique_names: string[],
+//   support_trans_log: Transaction[],
+//   name: string
+// ) {
+//   delete unique_names[unique_names.indexOf(name)];
+//   var personal_breakdown: Person[] = [];
+// }
