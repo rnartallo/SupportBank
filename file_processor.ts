@@ -2,9 +2,9 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const xml2js = require("xml2js");
 let support_trans_log: Transaction[] = [];
-import * as readline from "readline";
-import { Transaction, Person } from "./models";
-import { executeMain } from "./index";
+
+import { Transaction } from "./models";
+import { executeMain } from "./accounting_file";
 
 import { configure, getLogger } from "log4js";
 

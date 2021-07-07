@@ -1,4 +1,4 @@
-import { configure, getLogger } from "log4js";
+import { getLogger } from "log4js";
 import { Transaction } from "./models";
 let support_trans_log: Transaction[] = [];
 
