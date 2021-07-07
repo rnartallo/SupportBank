@@ -26,20 +26,22 @@ let rl = readline.createInterface({
 });
 
 rl.question("Enter a filename: ", (answer) => {
-  let file_type: String = getFileExt(answer);
-  if (file_type == "csv") {
-    processCSV(answer);
-  } else if (file_type == "json") {
-    processJSON(answer);
-  }
-  rl.close();
+  rl.question("Enter a command: ", function (command) {
+    let file_type: String = getFileExt(answer);
+    if (file_type == "csv") {
+      processCSV(answer, command);
+    } else if (file_type == "json") {
+      processJSON(answer, command);
+    }
+    rl.close();
+  });
 });
 
 function getFileExt(file: string) {
   return file.split(".")[1];
 }
 
-function processJSON(file: string) {
+function processJSON(file: string, command: string) {
   const data: string = fs.readFileSync(file, "utf8");
   var raw_data = JSON.parse(data);
   for (let i = 0; i < raw_data.length; i++) {
@@ -53,10 +55,10 @@ function processJSON(file: string) {
     support_trans_log.push(transaction);
   }
   logger.debug("Transactions all parsed: beginning further processing");
-  executeMain(support_trans_log);
+  executeMain(support_trans_log, command);
 }
 
-function processCSV(file: string) {
+function processCSV(file: string, command: string) {
   fs.createReadStream(file)
     .pipe(csv())
     .on("data", (row: Transaction) => {
@@ -66,11 +68,11 @@ function processCSV(file: string) {
     .on("end", () => {
       //we create a 'table' to keep track of the balances
       logger.debug("Transactions all parsed: beginning further processing");
-      executeMain(support_trans_log);
+      executeMain(support_trans_log, command);
     });
 }
 
-function executeMain(support_trans_log: Transaction[]) {
+function executeMain(support_trans_log: Transaction[], command: string) {
   var names_list: string[] = [];
   for (let i = 0; i < support_trans_log.length; i++) {
     names_list.push(support_trans_log[i].From);
@@ -128,23 +130,14 @@ function executeMain(support_trans_log: Transaction[]) {
   logger.debug(account_debits);
   logger.debug(account_credits);
   //here we add userinput and query functionality
-  let rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  rl.question("Enter a command: ", (answer) => {
-    logger.debug(answer);
-    if (answer == "List All") {
-      logger.debug("User has selected list all");
-      displayAll(unique_names, account_debits, account_credits);
-    } else {
-      var name: string = answer.substr(5);
-      logger.debug("User has selected " + name);
-      displayOne(name, support_trans_log);
-    }
-    rl.close();
-  });
+  if (command == "List All") {
+    logger.debug("User has selected list all");
+    displayAll(unique_names, account_debits, account_credits);
+  } else {
+    var name: string = command.substr(5);
+    logger.debug("User has selected " + name);
+    displayOne(name, support_trans_log);
+  }
 }
 
 function displayOne(name: string, support_trans_log: Transaction[]) {
