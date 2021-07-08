@@ -11,11 +11,13 @@ const logger = getLogger("<filename");
 export function displayOne(name: string, support_trans_log: Transaction[]) {
   console.log("LISTING TRANSACTIONS FOR: " + name);
   logger.debug("Listing transactions for " + name);
+  let table: Transaction[] = [];
   for (let j = 0; j < support_trans_log.length; j++) {
     if (support_trans_log[j].From == name || support_trans_log[j].To == name) {
-      console.table(support_trans_log[j]);
+      table.push(support_trans_log[j]);
     }
   }
+  console.table(table);
 }
 
 export function displayAll(
@@ -35,4 +37,14 @@ export function displayAll(
     table.push(entry);
   }
   console.table(table);
+  writeOutputToFileAll(table);
+}
+
+function writeOutputToFileAll(table: any) {
+  outputefile.write("Name " + "\t" + "Owe" + "\t" + "Owed" + "\n");
+  for (let i = 0; i < table.length; i++) {
+    outputefile.write(
+      table[i].Name + "\t" + table[i].Owe + "\t" + table[i].Owed + "\n"
+    );
+  }
 }

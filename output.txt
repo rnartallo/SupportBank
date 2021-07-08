@@ -1,0 +1,13 @@
+Name 	Owe	Owed
+Jon A	113.79	25.17
+Sarah T	63.41	34.6
+Stephen S	73.23	110.44
+Tim L	63.4	83.22
+Laura B	88.8	66.5
+Rob S	40.43	67.18
+Ben B	89.76	123.41
+Sam N	78.05	106.55
+Gergana I	69.75	116.12
+Todd	83.5	71.47
+Chris W	66.43	21.48
+Dan W	63.17	67.58

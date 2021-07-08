@@ -24,9 +24,7 @@ configure({
   },
 });
 
-let support_trans_log: Transaction[] = [];
 logger.debug("Program starts");
-//parsing the csv file into an array of type transaction
 
 let rl = readline.createInterface({
   input: process.stdin,
